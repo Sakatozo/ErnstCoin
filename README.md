@@ -1,5 +1,5 @@
 # ErnstCoin
 ErnstCoin Smart Contract
 
-# Solidty Resources
+# Solidity Resources
 https://solidity.readthedocs.io/en/develop/index.html
