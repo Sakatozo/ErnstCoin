@@ -1,0 +1,2 @@
+# ErnstCoin
+ErnstCoin Smart Contract
