@@ -12,6 +12,10 @@ contract owned {
         _;
     }
 
+	/*
+	 	Transfers ownership
+		Requires request comes from current owner
+	*/
     function transferOwnership(address newOwner) onlyOwner public {
         owner = newOwner;
     }
@@ -19,39 +23,79 @@ contract owned {
 
 interface tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) public; }
 
-contract TokenERC20 {
-    // Public variables of the token
+/******************************************/
+/*       ADVANCED TOKEN STARTS HERE       */
+/******************************************/
+
+contract ErnstCoin is owned {
+
+    uint256 public sellPrice;
+    uint256 public buyPrice;
+
+	 // Public variables of the token
     string public name;
+	
+	// Coin symbol
     string public symbol;
+
+	// 18 decimals is the strongly suggested default, avoid changing it
     uint8 public decimals = 18;
-    // 18 decimals is the strongly suggested default, avoid changing it
+
+	// The total number of coins
     uint256 public totalSupply;
+	
+	/*
+	Everytime you make a transaction on ethereum you need to pay a fee to the miner of the block that will calculate the result of your smart contract. While this might change in the future, for the moment fees can only be paid in ether and therefore all users of your tokens need it. Tokens in accounts with a balance smaller than the fee are stuck until the owner can pay for the necessary fee. But in some usecases, you might not want your users to think about ethereum, blockchain or how to obtain ether, so one possible approach would have your coin automatically refill the user balance as soon as it detects the balance is dangerously low.
+
+	In order to do that, first you need to create a variable that will hold the threshold amount and a function to change it. If you don't know any value, set it to 5 finney (0.005 ether).
+
+	*/
+	uint minBalanceForAccounts;
 
     // This creates an array with all balances
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
-
+	
+	// Mapping of frozen accounts
+    mapping (address => bool) public frozenAccount;
+	
     // This generates a public event on the blockchain that will notify clients
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     // This notifies clients about the amount burnt
     event Burn(address indexed from, uint256 value);
 
-    /**
-     * Constrctor function
-     *
-     * Initializes contract with initial supply tokens to the creator of the contract
-     */
-    function TokenERC20(
+
+    /* This generates a public event on the blockchain that will notify clients */
+    event FrozenFunds(address target, bool frozen);
+
+    /* Initializes contract with initial supply tokens to the creator of the contract */
+    function ErnstCoin(
         uint256 initialSupply,
         string tokenName,
-        string tokenSymbol
-    ) public {
-        totalSupply = initialSupply * 10 ** uint256(decimals);  // Update total supply with the decimal amount
-        balanceOf[msg.sender] = totalSupply;                // Give the creator all initial tokens
-        name = tokenName;                                   // Set the name for display purposes
-        symbol = tokenSymbol;                               // Set the symbol for display purposes
-    }
+        string tokenSymbol,
+		address centralMinter,
+		uint pMinBalanceForAccounts
+    ) public 
+	{
+		// Update total supply with the decimal amount
+		totalSupply = initialSupply * 10 ** uint256(decimals);
+		
+		// Give the creator all initial tokens
+        balanceOf[msg.sender] = totalSupply;
+		
+		// Set the name for display purposes
+        name = tokenName;    
+
+		// Set the symbol for display purposes
+        symbol = tokenSymbol;
+		
+		// Set the minBalanceForAccounts to avoid fee in transactions
+		minBalanceForAccounts = pMinBalanceForAccounts;
+		
+		// Set the initial centralMinter
+		if(centralMinter != 0 ) owner = centralMinter;
+	}
 
     /**
      * Internal transfer, only can be called by this contract
@@ -59,21 +103,39 @@ contract TokenERC20 {
     function _transfer(address _from, address _to, uint _value) internal {
         // Prevent transfer to 0x0 address. Use burn() instead
         require(_to != 0x0);
-        // Check if the sender has enough
+        
+		// Check if the sender has enough
         require(balanceOf[_from] >= _value);
-        // Check for overflows
+        
+		// Check for overflows
         require(balanceOf[_to] + _value > balanceOf[_to]);
+		
+		// Check if sender is frozen
+		 require(!frozenAccount[_from]);
+		
+		// Check if recipient is frozen         
+        require(!frozenAccount[_to]);                       
+		
         // Save this for an assertion in the future
         uint previousBalances = balanceOf[_from] + balanceOf[_to];
-        // Subtract from the sender
+        
+		// Subtract from the sender
         balanceOf[_from] -= _value;
-        // Add the same to the recipient
+        
+		// Add the same to the recipient
         balanceOf[_to] += _value;
-        Transfer(_from, _to, _value);
-        // Asserts are used to use static analysis to find bugs in your code. They should never fail
+
+		// Raise Transfer event
+		Transfer(_from, _to, _value);
+        
+		// we don't want the client to pay fees so we reimburse him
+		if(msg.sender.balance < minBalanceForAccounts)
+			sell((minBalanceForAccounts - msg.sender.balance) / sellPrice);
+		
+		// Asserts are used to use static analysis to find bugs in your code. They should never fail
         assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
     }
-
+	
     /**
      * Transfer tokens
      *
@@ -166,40 +228,6 @@ contract TokenERC20 {
         totalSupply -= _value;                              // Update totalSupply
         Burn(_from, _value);
         return true;
-    }
-}
-
-/******************************************/
-/*       ADVANCED TOKEN STARTS HERE       */
-/******************************************/
-
-contract ErnstCoin is owned, TokenERC20 {
-
-    uint256 public sellPrice;
-    uint256 public buyPrice;
-
-    mapping (address => bool) public frozenAccount;
-
-    /* This generates a public event on the blockchain that will notify clients */
-    event FrozenFunds(address target, bool frozen);
-
-    /* Initializes contract with initial supply tokens to the creator of the contract */
-    function ErnstCoin(
-        uint256 initialSupply,
-        string tokenName,
-        string tokenSymbol
-    ) TokenERC20(initialSupply, tokenName, tokenSymbol) public {}
-
-    /* Internal transfer, only can be called by this contract */
-    function _transfer(address _from, address _to, uint _value) internal {
-        require (_to != 0x0);                               // Prevent transfer to 0x0 address. Use burn() instead
-        require (balanceOf[_from] >= _value);               // Check if the sender has enough
-        require (balanceOf[_to] + _value > balanceOf[_to]); // Check for overflows
-        require(!frozenAccount[_from]);                     // Check if sender is frozen
-        require(!frozenAccount[_to]);                       // Check if recipient is frozen
-        balanceOf[_from] -= _value;                         // Subtract from the sender
-        balanceOf[_to] += _value;                           // Add the same to the recipient
-        Transfer(_from, _to, _value);
     }
 
     /// @notice Create `mintedAmount` tokens and send it to `target`
