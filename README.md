@@ -5,6 +5,10 @@ See The Super Extra ErnstCoin Corporation Ltd. Investors Institutional Blog  for
 https://ernstcoin.blogspot.fr/
 
 # Ethereum Network
+Create a token
+
+https://www.ethereum.org/token
+
 Contract Tutorial
 
 https://github.com/ethereum/go-ethereum/wiki/Contract-Tutorial
