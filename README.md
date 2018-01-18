@@ -13,6 +13,10 @@ Contract Tutorial
 
 https://github.com/ethereum/go-ethereum/wiki/Contract-Tutorial
 
+geth JSON
+
+https://github.com/ethereum/wiki/wiki/JSON-RPC
+
 # Solidity Resources
 Solidity Doc
 
