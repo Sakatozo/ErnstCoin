@@ -2,20 +2,24 @@
 ErnstCoin Smart Contract Official Repo
 
 See The Super Extra ErnstCoin Corporation Ltd. Investors Institutional Blog  for more info :
-https://ernstcoin.blogspot.fr/
+  https://ernstcoin.blogspot.fr/
 
 # Ethereum Network
 Create a token
 
-https://www.ethereum.org/token
+  https://www.ethereum.org/token
 
 Contract Tutorial
 
 https://github.com/ethereum/go-ethereum/wiki/Contract-Tutorial
 
+Geth Wiki
+
+  https://github.com/ethereum/go-ethereum/wiki
+
 geth JSON
 
-https://github.com/ethereum/wiki/wiki/JSON-RPC
+  https://github.com/ethereum/wiki/wiki/JSON-RPC
 
 # Solidity Resources
 Solidity Doc
